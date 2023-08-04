@@ -48,7 +48,7 @@ const authenticateJwtToken = async (request, response, next) => {
 };
 
 //API-1 user exits or not if not create new user
-app.post("/register/", async (request, response) => {
+app.post("/register/", authenticateJwtToken, async (request, response) => {
   const { name, username, password, gender } = request.body;
   const hashPassword = await bcrypt.hash(password, 10);
   const check = `
@@ -83,7 +83,7 @@ app.post("/register/", async (request, response) => {
 });
 
 //API-2 login check
-app.post("/login/", authenticateJwtToken, async (request, response) => {
+app.post("/login/", async (request, response) => {
   const { username, password } = request.body;
   const check = `
     select*from
@@ -108,8 +108,11 @@ app.post("/login/", authenticateJwtToken, async (request, response) => {
 });
 
 //API-3 latest tweets
-app.get("/user/tweets/feed/", async (request, response) => {
-  const getTweets = `
+app.get(
+  "/user/tweets/feed/",
+  authenticateJwtToken,
+  async (request, response) => {
+    const getTweets = `
     SELECT username,tweet,date_time as dateTime
     FROM 
     user INNER JOIN tweet ON user.user_id=tweet.user_id
@@ -117,93 +120,108 @@ app.get("/user/tweets/feed/", async (request, response) => {
     tweet_id DESC
     LIMIT 4 
     OFFSET 1;`;
-  const latest = await db.all(getTweets);
-  response.send(latest);
-});
+    const latest = await db.all(getTweets);
+    response.send(latest);
+  }
+);
 
 //API-4 return all names user follows
-app.get("/user/following/", async (request, response) => {
+app.get("/user/following/", authenticateJwtToken, async (request, response) => {
   const check = `
     select name from
-    user
+    user inner join follower on user.user_id=follower.follower_user_id
     ;`;
   const getUser = await db.all(check);
   response.send(getUser);
 });
 
+let a = [];
 //API-5 get names people who follows user
-app.get("/user/followers/", async (request, response) => {
+app.get("/user/followers/", authenticateJwtToken, async (request, response) => {
   const check = `
     select name from
-    user
+    user inner join follower on user.user_id=follower.following_user_id
     ;`;
   const getUser = await db.all(check);
+  a.push(getUser.name);
   response.send(getUser);
 });
 
 //API-6 request user for tweet scenarios
-app.get("/tweets/:tweetId/", async (request, response) => {
-  const { tweetId } = request.params;
-  const getTweetDetails = `
+app.get(
+  "/tweets/:tweetId/",
+  authenticateJwtToken,
+  async (request, response) => {
+    const { tweetId } = request.params;
+    const getTweetDetails = `
     select tweet,sum(like_id)as likes,sum(reply_id)as replies,date_time as dateTime
     from (like natural join reply ) as T natural  join tweet
     where 
     tweet_id=${tweetId}
     group by
     user_id,tweet;`;
-  const getTwe = await db.get(getTweetDetails);
-  if (getTwe === undefined) {
-    response.status(401);
-    response.send("Invalid Request");
-  } else {
-    response.status(200);
-    response.send(getTwe);
+    const getTwe = await db.get(getTweetDetails);
+    if (getTwe === undefined) {
+      response.status(401);
+      response.send("Invalid Request");
+    } else {
+      response.status(200);
+      response.send(getTwe);
+    }
   }
-});
+);
 
 //API-7 get liked names
-app.get("/tweets/:tweetId/likes/", async (request, response) => {
-  const { tweetId } = request.params;
-  const getTweetDetails = `
+app.get(
+  "/tweets/:tweetId/likes/",
+  authenticateJwtToken,
+  async (request, response) => {
+    const { tweetId } = request.params;
+    const getTweetDetails = `
     select user.name
     from like natural join user 
     where 
     tweet_id=${tweetId}
     group by
     like_id,tweet_id;`;
-  const getTwe = await db.all(getTweetDetails);
-  if (getTwe === undefined) {
-    response.status(401);
-    response.send("Invalid Request");
-  } else {
-    response.status(200);
-    response.send({ likes: getTwe });
+    const getTwe = await db.all(getTweetDetails);
+    if (getTwe === undefined) {
+      response.status(401);
+      response.send("Invalid Request");
+    } else {
+      response.status(200);
+      response.send({ likes: getTwe });
+    }
   }
-});
+);
 
 //API-8
-app.get("/tweets/:tweetId/replies/", async (request, response) => {
-  const { tweetId } = request.params;
-  const getTweetDetails = `
+app.get(
+  "/tweets/:tweetId/replies/",
+  authenticateJwtToken,
+  async (request, response) => {
+    const { tweetId } = request.params;
+    const getTweetDetails = `
     select user.name,reply
     from reply natural join user 
     where 
     tweet_id=${tweetId}
     group by
     user_id,tweet_id;`;
-  const getTwe = await db.all(getTweetDetails);
-  if (getTwe === undefined) {
-    response.status(401);
-    response.send("Invalid Request");
-  } else {
-    response.status(200);
-    response.send({ replies: getTwe });
+    const getTwe = await db.all(getTweetDetails);
+    if (getTwe === undefined) {
+      response.status(401);
+      response.send("Invalid Request");
+    } else {
+      response.status(200);
+      response.send({ replies: getTwe });
+    }
   }
-});
+);
 
 //API-9 get all list of tweets
 
-app.get("/user/tweets/", async (request, response) => {
+app.get("/user/tweets/", authenticateJwtToken, async (request, response) => {
   const getTweetDetails = `
     select tweet,sum(like_id)as likes,sum(reply_id)as replies,date_time as dateTime
     from (like natural join reply ) as T natural  join tweet
@@ -221,7 +239,7 @@ app.get("/user/tweets/", async (request, response) => {
 });
 
 //API-10 create new tweet
-app.post("/user/tweets/", async (request, response) => {
+app.post("/user/tweets/", authenticateJwtToken, async (request, response) => {
   const { tweet } = request.body;
   const getTweetDetails = `
     INSERT INTO tweet (tweet)
@@ -236,21 +254,25 @@ app.post("/user/tweets/", async (request, response) => {
 });
 
 //API-11 Delete a tweet
-app.delete("/tweets/:tweetId/", async (request, response) => {
-  const { tweetId } = request.params;
-  const dltTweet = `
+app.delete(
+  "/tweets/:tweetId/",
+  authenticateJwtToken,
+  async (request, response) => {
+    const { tweetId } = request.params;
+    const dltTweet = `
     DELETE from
     tweet
     where 
     tweet_id=${tweetId};`;
-  const DLT = await db.run(dltTweet);
-  if (DLT === undefined) {
-    response.status(401);
-    response.send("Invalid Request");
-  } else {
-    response.status(200);
-    response.send("Tweet Removed");
+    const DLT = await db.run(dltTweet);
+    if (DLT === undefined) {
+      response.status(401);
+      response.send("Invalid Request");
+    } else {
+      response.status(200);
+      response.send("Tweet Removed");
+    }
   }
-});
+);
 
 module.exports = app;

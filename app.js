@@ -48,7 +48,7 @@ const authenticateJwtToken = async (request, response, next) => {
 };
 
 //API-1 user exits or not if not create new user
-app.post("/register/", authenticateJwtToken, async (request, response) => {
+app.post("/register/", async (request, response) => {
   const { name, username, password, gender } = request.body;
   const hashPassword = await bcrypt.hash(password, 10);
   const check = `

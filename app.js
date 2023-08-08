@@ -113,13 +113,19 @@ app.get(
   authenticateJwtToken,
   async (request, response) => {
     const getTweets = `
-    SELECT username,tweet,date_time as dateTime
-    FROM 
-    user INNER JOIN tweet ON user.user_id=tweet.user_id
-    ORDER BY
-    tweet_id DESC
-    LIMIT 4 
-    OFFSET 1;`;
+            SELECT
+            user.username, tweet.tweet, tweet.date_time AS dateTime
+            FROM
+            follower
+            INNER JOIN tweet
+            ON follower.following_user_id = tweet.user_id
+            INNER JOIN user
+            ON tweet.user_id = user.user_id
+            WHERE
+            follower.follower_user_id = ${response.username.user_id}
+            ORDER BY
+            tweet.date_time DESC
+            LIMIT 4;`;
     const latest = await db.all(getTweets);
     response.send(latest);
   }

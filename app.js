@@ -112,7 +112,11 @@ app.get(
   "/user/tweets/feed/",
   authenticateJwtToken,
   async (request, response) => {
-    const { username } = request.body;
+    const { username } = request;
+    const user_Id = `SELECT * 
+         FROM user
+          WHERE username = '${username}';`;
+    const get = await db.get(user_Id);
     const getTweets = `
             SELECT
             user.username, tweet.tweet, tweet.date_time AS dateTime
@@ -123,7 +127,7 @@ app.get(
             INNER JOIN user
             ON tweet.user_id = user.user_id
             WHERE
-            follower.follower_user_id = ${user.user_id}
+            follower.follower_user_id = ${get.user_id}
             ORDER BY
             tweet.date_time DESC
             LIMIT 4;`;

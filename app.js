@@ -40,7 +40,7 @@ const authenticateJwtToken = async (request, response, next) => {
         response.status(401);
         response.send("Invalid JWT Token");
       } else {
-        response.username = payload.username;
+        request.username = payload.username;
         next();
       }
     });

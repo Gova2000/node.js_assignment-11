@@ -138,23 +138,34 @@ app.get(
 
 //API-4 return all names user follows
 app.get("/user/following/", authenticateJwtToken, async (request, response) => {
+  const { username } = request;
+  const user_Id = `SELECT * 
+         FROM user
+          WHERE username = '${username}';`;
+  const get = await db.get(user_Id);
   const check = `
     select name from
     user inner join follower on user.user_id=follower.follower_user_id
+    WHERE follower.following_user_id = ${get.user_id}
     ;`;
   const getUser = await db.all(check);
   response.send(getUser);
 });
 
-let a = [];
+
+
 //API-5 get names people who follows user
 app.get("/user/followers/", authenticateJwtToken, async (request, response) => {
+  const user_Id = `SELECT * 
+         FROM user
+          WHERE username = '${username}';`;
+  const get = await db.get(user_Id);
   const check = `
     select name from
     user inner join follower on user.user_id=follower.following_user_id
+    WHERE follower.follower_user_id = ${get.user_id}
     ;`;
   const getUser = await db.all(check);
-  a.push(getUser.name);
   response.send(getUser);
 });
 

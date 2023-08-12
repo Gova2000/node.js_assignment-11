@@ -144,28 +144,29 @@ app.get("/user/following/", authenticateJwtToken, async (request, response) => {
           WHERE username = '${username}';`;
   const get = await db.get(user_Id);
   const check = `
-    select name from
-    user inner join follower on user.user_id=follower.follower_user_id
-    WHERE follower.following_user_id = ${get.user_id}
-    ;`;
+    SELECT
+    name
+    FROM follower INNER JOIN user on user.user_id = follower.follower_user_id
+    WHERE follower.following_user_id = ${get.user_id};`;
   const getUser = await db.all(check);
   response.send(getUser);
 });
 
-
-
 //API-5 get names people who follows user
 app.get("/user/followers/", authenticateJwtToken, async (request, response) => {
+  const { username } = request;
   const user_Id = `SELECT * 
          FROM user
           WHERE username = '${username}';`;
   const get = await db.get(user_Id);
   const check = `
-    select name from
-    user inner join follower on user.user_id=follower.following_user_id
+    SELECT
+    name
+    FROM follower INNER JOIN user on user.user_id = follower.follower_user_id
     WHERE follower.follower_user_id = ${get.user_id}
     ;`;
   const getUser = await db.all(check);
+
   response.send(getUser);
 });
 
@@ -281,13 +282,19 @@ app.delete(
   authenticateJwtToken,
   async (request, response) => {
     const { tweetId } = request.params;
+    const { username } = request;
+    const user_Id = `SELECT * 
+         FROM user
+          WHERE username = '${username}';`;
+    const get = await db.get(user_Id);
+
     const dltTweet = `
     DELETE from
     tweet
     where 
-    tweet_id=${tweetId};`;
+    user_id=${get.user_id};`;
     const DLT = await db.run(dltTweet);
-    if (DLT === undefined) {
+    if (dltTweet === undefined) {
       response.status(401);
       response.send("Invalid Request");
     } else {

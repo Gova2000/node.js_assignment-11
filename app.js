@@ -245,12 +245,28 @@ app.get(
 //API-9 get all list of tweets
 
 app.get("/user/tweets/", authenticateJwtToken, async (request, response) => {
+  const { username } = request;
+  const user_Id = `SELECT * 
+         FROM user
+          WHERE username = '${username}';`;
+  const get = await db.get(user_Id);
+
   const getTweetDetails = `
-    select tweet,sum(like_id)as likes,sum(reply_id)as replies,date_time as dateTime
-    from (like natural join reply ) as T natural  join tweet
-    
-    group by
-    user_id,tweet;`;
+    SELECT
+        tweet,
+        (
+        SELECT COUNT(like_id)
+        FROM like
+        WHERE tweet_id=tweet.tweet_id
+        ) AS likes,
+        (
+        SELECT COUNT(reply_id)
+        FROM reply
+        WHERE tweet_id=tweet.tweet_id
+        ) AS replies,
+        date_time AS dateTime
+        FROM tweet
+        WHERE user_id= ${get.user_id}`;
   const getTwe = await db.all(getTweetDetails);
   if (getTwe === undefined) {
     response.status(401);

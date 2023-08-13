@@ -146,8 +146,8 @@ app.get("/user/following/", authenticateJwtToken, async (request, response) => {
   const check = `
     SELECT
     name
-    FROM follower INNER JOIN user on user.user_id = follower.follower_user_id
-    WHERE follower.following_user_id = ${get.user_id};`;
+    FROM follower INNER JOIN user on user.user_id = follower.following_user_id
+    WHERE follower.follower_user_id = ${get.user_id};`;
   const getUser = await db.all(check);
   response.send(getUser);
 });
@@ -163,7 +163,7 @@ app.get("/user/followers/", authenticateJwtToken, async (request, response) => {
     SELECT
     name
     FROM follower INNER JOIN user on user.user_id = follower.follower_user_id
-    WHERE follower.follower_user_id = ${get.user_id}
+    WHERE follower.following_user_id = ${get.user_id}
     ;`;
   const getUser = await db.all(check);
 

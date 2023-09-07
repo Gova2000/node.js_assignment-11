@@ -171,28 +171,36 @@ app.get("/user/followers/", authenticateJwtToken, async (request, response) => {
 });
 
 //API-6 request user for tweet scenarios
-app.get(
-  "/tweets/:tweetId/",
-  authenticateJwtToken,
-  async (request, response) => {
-    const { tweetId } = request.params;
-    const getTweetDetails = `
-    select tweet,sum(like_id)as likes,sum(reply_id)as replies,date_time as dateTime
-    from (like natural join reply ) as T natural  join tweet
-    where 
-    tweet_id=${tweetId}
-    group by
-    user_id,tweet;`;
-    const getTwe = await db.get(getTweetDetails);
-    if (getTwe === undefined) {
-      response.status(401);
-      response.send("Invalid Request");
-    } else {
-      response.status(200);
-      response.send(getTwe);
-    }
+app.get("/tweets/:tweetId/", async (request, response) => {
+  const { tweetId } = request.params;
+  const { username } = request;
+  const user_Id = `SELECT * 
+         FROM user
+          WHERE username = '${username}';`;
+  const get = await db.get(user_Id);
+  const tweetsQuery = `
+SELECT
+*
+FROM tweet
+WHERE tweet_id=${tweetId}
+`;
+  const tweetResult = await database.get(tweetsQuery);
+  const userFollowersQuery = `
+SELECT
+*
+FROM follower INNER JOIN user on user.user_id = follower.following_user_id
+WHERE follower.follower_user_id = ${get.user_id};`;
+  const userFollowers = await database.all(userFollowersQuery);
+  if (
+    userFollowers.some((item) => item.following_user_id === tweetResult.user_id)
+  ) {
+    response.status(200);
+    response.send(userFollowers);
+  } else {
+    response.status(401);
+    response.send("Invalid Request");
   }
-);
+});
 
 //API-7 get liked names
 app.get(
